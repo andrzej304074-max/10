@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
+    "parse:check": "tsx scripts/parse-check.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

@@ -24,7 +24,8 @@ realne zapytania — mimo że na otodom.pl nie da się zainstalować pixela.
 13. [RODO](#rodo)
 14. [Struktura projektu](#struktura-projektu)
 15. [Testy](#testy)
-16. [Rozwiązywanie problemów](#rozwiązywanie-problemów)
+16. [Dostrajanie parsera](#dostrajanie-parsera)
+17. [Rozwiązywanie problemów](#rozwiązywanie-problemów)
 
 ---
 
@@ -103,6 +104,7 @@ Przydatne polecenia:
 | `npm run db:migrate` | uruchomienie migracji |
 | `npm run db:generate` | wygenerowanie migracji po zmianie schematu |
 | `npm run db:studio` | przeglądarka bazy (Drizzle Studio) |
+| `npm run parse:check -- mail.eml` | co parser wyciągnie z konkretnego maila — [patrz niżej](#dostrajanie-parsera) |
 
 `.env`, `.env.local` i wszystkie warianty `.env.*` są w `.gitignore` —
 do repozytorium trafia wyłącznie `.env.example` z pustymi wartościami.
@@ -605,7 +607,7 @@ src/
     └── logger.ts · time-budget.ts
 
 drizzle/    migracje SQL
-scripts/    migrate.ts
+scripts/    migrate.ts · parse-check.ts (diagnostyka parsera)
 tests/      8 plików, 149 testów
 ```
 
@@ -640,6 +642,60 @@ Pokrycie:
 
 ---
 
+## Dostrajanie parsera
+
+Wzorce rozpoznawania pól są ogólne — obejmują typowe etykiety Otodomu w wersji
+polskiej i angielskiej, tekstowej i HTML. Prawdziwy mail może mieć własny układ,
+więc jest narzędzie do sprawdzenia tego **lokalnie, bez wdrażania czegokolwiek**:
+
+```bash
+# zapisz maila z klienta poczty (Gmail: ⋮ → „Pokaż oryginał" → „Pobierz wiadomość")
+npm run parse:check -- ~/Downloads/otodom.eml
+
+# albo wklej samą treść
+cat tresc.txt | npm run parse:check
+```
+
+Skrypt przechodzi **dokładnie tę samą ścieżkę co produkcja** — filtr → parser →
+normalizacja → haszowanie → budowa zdarzenia — i wypisuje:
+
+- decyzję filtra wraz z trzema sygnałami (nadawca / temat / treść),
+- każde wyciągnięte pole i **skąd** pochodzi (etykieta, wzorzec awaryjny, wyprowadzone),
+- listę pól, których nie udało się wyciągnąć,
+- gotowy `event_id` i payload CAPI,
+- ile identyfikatorów trafi do Meta (`x/5` — im więcej, tym lepsze dopasowanie).
+
+Nie łączy się z bazą, nie wysyła niczego do Meta i nie potrzebuje ani jednej
+zmiennej środowiskowej.
+
+**Dane osobowe w wyniku są domyślnie zamaskowane**, więc wynik można bezpiecznie
+komuś pokazać. Pełne wartości — do weryfikacji poprawności na własnej maszynie —
+odsłania flaga `--reveal`:
+
+```bash
+npm run parse:check -- --reveal ~/Downloads/otodom.eml
+```
+
+Kod wyjścia: `0` gdy filtr przepuścił wiadomość, `2` gdy odrzucił — wygodne
+w skrypcie sprawdzającym wiele maili naraz.
+
+### Co poprawić, gdy pole nie zostało wyciągnięte
+
+Wszystko siedzi w jednym pliku: `src/lib/config/patterns.ts`.
+
+| Problem | Co zmienić |
+|---|---|
+| brakuje imienia / e-maila / telefonu | dopisz etykietę z maila do `NAME_LABELS`, `EMAIL_LABELS` albo `PHONE_LABELS` |
+| filtr odrzuca prawidłowego leada | poszerz `DEFAULT_SUBJECT_PATTERNS` lub `DEFAULT_SENDER_DOMAINS` (albo bez zmiany kodu: `OTODOM_SUBJECT_PATTERNS`, `OTODOM_SENDER_DOMAINS`) |
+| jako lead łapie się adres portalu | dopisz domenę do `OTODOM_EXCLUDED_EMAIL_DOMAINS` |
+| numer ogłoszenia nie wychodzi z URL-a | dostrój `LISTING_ID_FROM_URL_PATTERNS` |
+
+Po zmianie dorzuć maila jako fixture w `tests/fixtures/emails.ts` (z zmyślonymi
+danymi) i asercję w `tests/parser.test.ts` — wtedy kolejna zmiana wzorców
+nie zepsuje po cichu obsługi tego układu.
+
+---
+
 ## Rozwiązywanie problemów
 
 | Objaw | Przyczyna i rozwiązanie |
@@ -647,7 +703,7 @@ Pokrycie:
 | Webhook zwraca **401** | zły `INBOUND_WEBHOOK_SECRET` albo `INBOUND_PROVIDER` nie zgadza się z faktycznym dostawcą. Sprawdź log `inbound.signature_invalid`. |
 | Webhook zwraca **500 `misconfigured`** | brakuje zmiennej środowiskowej. `GET /api/health` pokaże, która grupa jest niekompletna. |
 | Maile przychodzą, ale nie ma zdarzeń | filtr je odrzuca. Szukaj `pipeline.skipped` z powodem; ustaw `LOG_LEVEL=debug` i ewentualnie poszerz `OTODOM_SENDER_DOMAINS` / `OTODOM_SUBJECT_PATTERNS`. |
-| `pipeline.parse_failed` / `no_identifier` | parser nie znalazł ani e-maila, ani telefonu. Zobacz `parser.fields_missing` i dostrój wzorce w `src/lib/config/patterns.ts`. |
+| `pipeline.parse_failed` / `no_identifier` | parser nie znalazł ani e-maila, ani telefonu. Zapisz maila i uruchom `npm run parse:check -- mail.eml` — patrz [Dostrajanie parsera](#dostrajanie-parsera). |
 | Zdarzenia wiszą jako `pending` | cron nie chodzi. Sprawdź, czy `CRON_SECRET` jest ustawiony i czy plan Vercel dopuszcza Twój harmonogram. |
 | Meta zwraca **400** | najczęściej zły `META_DATASET_ID` albo token bez `ads_management`. Treść odpowiedzi jest w panelu w sekcji dead-letter. |
 | Meta zwraca **190** / `Invalid OAuth token` | token wygasł lub został odebrany — wygeneruj nowy (patrz sekcja o tokenie systemowym). |
