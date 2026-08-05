@@ -91,6 +91,29 @@ export async function GET(request: Request): Promise<Response> {
     identityStatus: identity.status,
   });
 
+  /**
+   * Token wygenerowany w Menedżerze zdarzeń ma zakres „wyślij zdarzenie do tego
+   * zestawu" i nic ponadto — odczyt metadanych wymaga `ads_management`. Błąd
+   * uprawnień przy odczycie NIE oznacza więc problemu z wysyłką; oznacza tylko,
+   * że tym tokenem nie da się zadać tego pytania.
+   */
+  const readBlocked =
+    dataset.status === 400 &&
+    typeof dataset.body === "object" &&
+    dataset.body !== null &&
+    JSON.stringify(dataset.body).includes("Missing Permission");
+
+  const interpretation = readBlocked
+    ? "Token ma zakres wyłącznie do wysyłki (typowe dla tokenu z Menedżera zdarzeń), " +
+      "więc odczyt metadanych zestawu jest niedostępny. To NIE świadczy o problemie " +
+      "z wysyłaniem zdarzeń — te i tak kończą się kodem 200. Aby odczytać " +
+      "last_fired_time, potrzebny byłby token z uprawnieniem ads_management."
+    : dataset.status === 200
+      ? "Odczyt zestawu powiódł się. Porównaj dataset.body.name z nazwą zestawu " +
+        "otwartego w Menedżerze zdarzeń, a last_fired_time z czasem ostatniej wysyłki."
+      : "Odczyt zestawu nie powiódł się z innego powodu niż brak uprawnień — " +
+        "sprawdź treść błędu.";
+
   return NextResponse.json(
     {
       ok: true,
@@ -105,10 +128,9 @@ export async function GET(request: Request): Promise<Response> {
       dataset,
       /** Tożsamość, do której należy token. */
       identity,
-      hint:
-        "Porównaj dataset.body.name z nazwą zestawu, który masz otwarty w Menedżerze " +
-        "zdarzeń. Jeśli last_fired_time jest świeży, zdarzenia docierają i problem " +
-        "dotyczy wyłącznie wyświetlania.",
+      /** Odczyt metadanych bywa niedostępny — pole mówi, czy wynik da się zinterpretować. */
+      datasetReadable: dataset.status === 200,
+      interpretation,
     },
     { status: 200 },
   );
