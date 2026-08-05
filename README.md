@@ -5,6 +5,11 @@ z formularza kontaktowego Otodom na zdarzenia `Lead` w Meta Conversions API,
 dzięki czemu kampanie na Facebooku i Instagramie mogą optymalizować się pod
 realne zapytania — mimo że na otodom.pl nie da się zainstalować pixela.
 
+> **Wdrażasz po raz pierwszy?** Zacznij od [DEPLOYMENT.md](./DEPLOYMENT.md) —
+> liniowej instrukcji krok po kroku, z bramką weryfikacyjną po każdej fazie.
+> Ten plik jest opisem referencyjnym: opisuje *co jest czym*, nie *w jakiej
+> kolejności to klikać*.
+
 ---
 
 ## Spis treści
