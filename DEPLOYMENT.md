@@ -134,25 +134,49 @@ puste — to znaczy, że baza odpowiada.
 Powinno być `1062762802819993`. Jeśli nie — użyj tego, co widzisz, i popraw
 `META_DATASET_ID`.
 
-### 8. Wygeneruj token systemowy
+### 8. Wygeneruj token dostępu
 
-[business.facebook.com](https://business.facebook.com) → **Ustawienia firmy**:
+**Droga zalecana — przez Menedżer zdarzeń (bez aplikacji Meta):**
 
-1. **Użytkownicy** → **Użytkownicy systemowi** → *Dodaj*
-   Nazwa: `otodom-capi`, rola: **Administrator systemu**
-2. **Przypisz zasoby**:
-   - konto reklamowe → *Zarządzanie kampaniami*
-   - zestaw danych → *Zarządzanie zestawem danych*
-3. **Wygeneruj nowy token**:
-   - wybierz aplikację
-   - zaznacz uprawnienie **`ads_management`**
-   - *Wygeneruj*
+1. [Menedżer zdarzeń](https://business.facebook.com/events_manager) → w lewej
+   kolumnie wybierz swój **zestaw danych**
+2. Zakładka **Ustawienia**
+3. Przewiń do sekcji **Conversions API** → **Wygeneruj token dostępu**
+
+Meta sama dobiera zakres uprawnień pod CAPI — nie wybierasz ani aplikacji,
+ani uprawnień. To wystarczy do wszystkiego, co robi ta aplikacja.
 
 > ⚠️ **Token pokazuje się tylko raz.** Skopiuj go od razu do menedżera haseł.
 
-*Wariant szybszy:* Menedżer zdarzeń → zestaw danych → **Ustawienia** → sekcja
-*Conversions API* → **Wygeneruj token dostępu**. Token systemowy z Business
-Managera jest jednak trwalszy i łatwiej go odebrać, gdy zajdzie potrzeba.
+*Nie widzisz sekcji Conversions API?* Poszukaj w zakładce **Przegląd** zestawu
+danych → **Konfiguruj** → **Conversions API** → **Konfiguruj ręcznie**.
+Wszystkie te ścieżki prowadzą do tego samego przycisku.
+
+**Droga alternatywna — token systemowy (przeżywa zmiany osób w firmie):**
+
+Token z Menedżera zdarzeń jest powiązany z Twoim kontem osobistym. Jeśli
+zależy Ci na tokenie niezależnym od konkretnej osoby, wygeneruj go przez
+użytkownika systemowego:
+
+1. [business.facebook.com](https://business.facebook.com) → **Ustawienia firmy**
+   → **Użytkownicy** → **Użytkownicy systemowi** → *Dodaj*
+   Nazwa `otodom-capi`, rola **Zwykły użytkownik systemowy**
+2. **Przypisz zasoby** → **zestaw danych** → rola *Zarządzanie zestawem danych*
+3. **Wygeneruj nowy token** → wybierz aplikację → zaznacz `ads_management`
+
+> **Ta droga wymaga posiadania aplikacji Meta.** Jeśli nigdy jej nie tworzyłeś,
+> lista aplikacji będzie pusta, a założenie nowej bywa blokowane
+> (niedokończona rejestracja konta dewelopera potrafi pokazywać komunikat
+> o ograniczeniu regionalnym). Wtedy po prostu użyj drogi zalecanej powyżej.
+
+**O uprawnieniach — mniej znaczy lepiej.** Aplikacja wysyła zdarzenia wyłącznie
+pod adres `/{DATASET_ID}/events`. Nie dotyka kampanii, stawek ani płatności:
+
+| Zasób | Rola | Konieczne? |
+|---|---|---|
+| zestaw danych | Zarządzanie zestawem danych | **tak** |
+| konto reklamowe | Wyświetlanie wyników | opcjonalnie |
+| metody płatności, finanse | — | **nigdy** |
 
 ### 9. Włącz tryb testowy
 
