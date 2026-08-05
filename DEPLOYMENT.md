@@ -67,7 +67,21 @@ Development**:
 
 `META_ACCESS_TOKEN` dojdzie w fazie 2, zmienne poczty w fazie 3.
 
-### 4. Uruchom migracje
+### 4. Utwórz tabele
+
+**Najprościej — bez instalowania czegokolwiek (zalecane):**
+
+1. Vercel → **Storage** → Twoja baza
+2. Zakładka **Query** *(albo przycisk **Open in Neon** → w konsoli Neon
+   **SQL Editor** — jedno i drugie prowadzi do tego samego edytora)*
+3. Otwórz [`scripts/manual-migration.sql`](./scripts/manual-migration.sql),
+   skopiuj **całą** zawartość, wklej i uruchom
+
+Plik zawiera też wpis do rejestru migracji Drizzle, więc gdybyś kiedyś
+uruchomił migracje z komputera, narzędzie rozpozna, że są już wykonane,
+i ich nie powtórzy.
+
+**Wariant z terminalem** (wymaga Node.js i sklonowanego repozytorium):
 
 ```bash
 npm i -g vercel
@@ -78,9 +92,6 @@ npm run db:migrate
 ```
 
 Oczekujesz: `✔ Migracje wykonane.`
-
-*Bez terminala:* Storage → Twoja baza → **Query** (albo Neon SQL Editor) →
-wklej całą zawartość `drizzle/0000_init.sql`.
 
 ### 5. Wyłącz ochronę deploya
 
