@@ -45,6 +45,15 @@ export function syntheticMessageId(parts: {
   return `${SYNTHETIC_MESSAGE_ID_PREFIX}${sha256Hex(fingerprint)}`;
 }
 
+/**
+ * Czy wejście wygląda na surowy MIME (ma nagłówki), czy na samą treść.
+ * Pozwala przyjąć jedno i drugie tam, gdzie użytkownik wkleja cokolwiek.
+ */
+export function looksLikeMime(input: string): boolean {
+  const head = input.slice(0, 2_000);
+  return /^(?:From|To|Subject|Date|Message-ID|Received|MIME-Version|Content-Type):/im.test(head);
+}
+
 export interface ParseRawOptions {
   source: NormalizedInboundEmail["source"];
   provider: string;

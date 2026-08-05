@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cookies } from "next/headers";
 
 import { DASHBOARD_COOKIE, verifySessionToken } from "@/lib/auth/dashboard";
@@ -223,9 +224,14 @@ export default async function DashboardPage({
             Ostatnie 100 zdarzeń wysłanych do Meta Conversions API.
           </p>
         </div>
-        <form action={logoutAction}>
-          <button type="submit">Wyloguj</button>
-        </form>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link href="/dashboard/parser">
+            <button type="button">Podgląd parsera</button>
+          </Link>
+          <form action={logoutAction}>
+            <button type="submit">Wyloguj</button>
+          </form>
+        </div>
       </div>
 
       {retryNotice ? <div className="notice" style={{ marginTop: 20 }}>{retryNotice}</div> : null}
