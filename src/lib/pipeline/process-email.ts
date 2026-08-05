@@ -4,7 +4,7 @@ import { hasUsableIdentifier, hashIdentity } from "@/lib/hashing/hash";
 import { maskHash, maskSender, truncate } from "@/lib/hashing/mask";
 import { shouldProcessEmail } from "@/lib/mail/filter";
 import type { NormalizedInboundEmail } from "@/lib/mail/types";
-import { buildLeadEvent, buildRequestBody } from "@/lib/meta/event";
+import { buildLeadEvent, buildRequestBody, type BuildLeadEventOptions } from "@/lib/meta/event";
 import type { MetaEventsRequestBody } from "@/lib/meta/types";
 import { logger, type Logger } from "@/lib/logger";
 import { parseOtodomLead } from "@/lib/parser/otodom";
@@ -41,6 +41,8 @@ export interface ProcessOptions {
   /** Buduje payload i zwraca go, bez wysyłki i bez zapisu do bazy. */
   dryRun?: boolean;
   log?: Logger;
+  /** Nadpisania przy budowie zdarzenia — używane wyłącznie przez endpoint testowy. */
+  eventOptions?: BuildLeadEventOptions;
   /** Wstrzykiwane w testach. */
   deliverImpl?: typeof deliverEvent;
 }
@@ -132,14 +134,17 @@ export async function processInboundEmail(
   }
 
   /* --- 4. budowa zdarzenia --------------------------------------------------- */
-  const event = buildLeadEvent({
-    hashes,
-    sentAt: lead.sentAt,
-    messageId: email.messageId,
-    listingId: lead.listingId,
-    listingUrl: lead.listingUrl,
-    listingTitle: lead.listingTitle,
-  });
+  const event = buildLeadEvent(
+    {
+      hashes,
+      sentAt: lead.sentAt,
+      messageId: email.messageId,
+      listingId: lead.listingId,
+      listingUrl: lead.listingUrl,
+      listingTitle: lead.listingTitle,
+    },
+    options.eventOptions,
+  );
 
   const body = buildRequestBody(event);
 

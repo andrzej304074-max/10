@@ -26,6 +26,25 @@ const bodySchema = z.object({
   listingTitle: z.string().optional(),
   /** Zbuduj payload i zwróć go, nie wysyłaj i nie zapisuj niczego w bazie. */
   dryRun: z.boolean().optional(),
+  /**
+   * Nadpisanie `action_source` — wyłącznie do diagnozy. Narzędzia podglądowe
+   * Meta bywają zbudowane pod zdarzenia ze strony WWW, więc porównanie
+   * `system_generated` z `website` potrafi rozstrzygnąć, czy zdarzenie
+   * na pewno dociera, a tylko się nie wyświetla.
+   */
+  actionSource: z
+    .enum([
+      "email",
+      "website",
+      "phone_call",
+      "chat",
+      "physical_store",
+      "system_generated",
+      "app",
+      "business_messaging",
+      "other",
+    ])
+    .optional(),
 });
 
 /**
@@ -139,7 +158,13 @@ export async function POST(request: Request): Promise<Response> {
   const budget = new TimeBudget(MAX_DURATION_MS - (Date.now() - startedAt), 5_000);
 
   try {
-    const result = await processInboundEmail(email, { budget, dryRun });
+    const result = await processInboundEmail(email, {
+      budget,
+      dryRun,
+      ...(parsed.data.actionSource
+        ? { eventOptions: { actionSource: parsed.data.actionSource } }
+        : {}),
+    });
     const meta = getMetaConfig();
 
     logger.info("dev.test_lead", {
@@ -155,6 +180,7 @@ export async function POST(request: Request): Promise<Response> {
         dryRun,
         outcome: result.outcome,
         eventId: result.eventId,
+        actionSource: parsed.data.actionSource ?? "system_generated",
         status: result.status,
         attempts: result.attempts,
         reason: result.reason,

@@ -1,7 +1,7 @@
 import { getAppConfig } from "@/lib/config/env";
 import { sha256Hex, toUserData, type IdentityHashes } from "@/lib/hashing/hash";
 
-import type { MetaEventsRequestBody, MetaLeadEvent } from "./types";
+import type { MetaActionSource, MetaEventsRequestBody, MetaLeadEvent } from "./types";
 
 export const EVENT_NAME = "Lead";
 export const LEAD_SOURCE = "otodom";
@@ -28,6 +28,13 @@ export interface BuildLeadEventOptions {
   /** Okno zaokrąglenia timestampu w `event_id` (sekundy). */
   bucketSeconds?: number;
   eventName?: string;
+  /**
+   * Nadpisanie `action_source`. Domyślnie `system_generated` — zdarzenie
+   * powstaje z maila, bez udziału przeglądarki. Parametr istnieje wyłącznie
+   * po to, żeby dało się porównać zachowanie narzędzi diagnostycznych Meta
+   * dla różnych wartości; produkcja nie powinna go używać.
+   */
+  actionSource?: MetaActionSource;
 }
 
 /**
@@ -94,7 +101,7 @@ export function buildLeadEvent(
     event_name: options.eventName ?? EVENT_NAME,
     event_time: eventTime,
     event_id: eventId,
-    action_source: ACTION_SOURCE,
+    action_source: options.actionSource ?? ACTION_SOURCE,
     event_source_url: eventSourceUrl,
     user_data: toUserData(input.hashes),
     custom_data: {
