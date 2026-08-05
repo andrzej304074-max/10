@@ -744,6 +744,7 @@ nie zepsuje po cichu obsługi tego układu.
 | Deploy odrzucony: *„Hobby accounts are limited to daily cron jobs"* | w `vercel.json` ustaw `schedule` na `"0 3 * * *"` (tak jest domyślnie) albo przejdź na plan Pro. |
 | Meta zwraca **400** | najczęściej zły `META_DATASET_ID` albo token bez `ads_management`. Treść odpowiedzi jest w panelu w sekcji dead-letter. |
 | Meta zwraca **190** / `Invalid OAuth token` | token wygasł lub został odebrany — wygeneruj nowy (patrz sekcja o tokenie systemowym). |
-| Zdarzenia nie widać w „Testowanie zdarzeń” | `META_TEST_MODE` musi być `true`, a `META_TEST_EVENT_CODE` zgodny z kodem widocznym w zakładce. Po zmianie zrób redeploy. |
+| Zdarzenia nie widać w „Testowanie zdarzeń” | `META_TEST_MODE` musi być `true`, a `META_TEST_EVENT_CODE` zgodny z kodem widocznym w zakładce. Po zmianie zrób redeploy. Zakładka pokazuje wyłącznie zdarzenia przychodzące przy otwartej karcie — nie odtwarza wstecz. |
+| Zdarzenia nie widać w Przeglądzie | **Szukasz nazwy „Lead"?** W polskim interfejsie zdarzenie nazywa się **„Kontakt”**, a źródło to **API konwersji**. Do tego Przegląd agreguje z opóźnieniem liczonym w godzinach — łącznie ze wskaźnikiem „ostatnio odebrane”. Rozstrzyga kolumna `lead_events.events_received`: wartość `1` znaczy, że Meta przyjęła zdarzenie, niezależnie od stanu interfejsu. |
 | Cron loguje `cron.backlog_remaining` | zaległość większa niż limit na przebieg — zwiększ `IMAP_MAX_MESSAGES_PER_RUN` albo skróć `IMAP_LOOKBACK_HOURS`. |
 | Błąd logowania IMAP dla Gmaila | wymagane **hasło aplikacji**, nie hasło do konta; włącz też dostęp IMAP w ustawieniach Gmaila. |
