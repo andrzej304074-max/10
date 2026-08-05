@@ -207,9 +207,24 @@ w zakładce **Testowanie zdarzeń** w kilkanaście sekund.
 | `401` | zły `CRON_SECRET` w poleceniu |
 | `"status": 400` | zły `META_DATASET_ID` albo token bez `ads_management` |
 | `"status": 190` | token wygasł lub został odebrany — wygeneruj nowy |
-| `"outcome": "sent"`, ale pusto w Menedżerze | `META_TEST_MODE` nie jest `true`, albo kod `TEST…` się nie zgadza |
+| `"outcome": "sent"`, ale pusto w Menedżerze | patrz ramka poniżej — najczęściej szukasz nazwy „Lead" zamiast „Kontakt" albo Przegląd jeszcze się nie odświeżył |
 
 Pełną treść błędu od Meta znajdziesz w `/dashboard` w sekcji **dead-letter**.
+
+> ### ⚠️ Dwie pułapki, przez które wydaje się, że nic nie dociera
+>
+> **1. Zdarzenie `Lead` wyświetla się po polsku jako „Kontakt".**
+> Meta tłumaczy nazwy zdarzeń standardowych w interfejsie. Szukając słowa
+> „Lead" w Przeglądzie nie znajdziesz go **nigdy** — wiersz nazywa się
+> **Kontakt**, ze źródłem **API konwersji**.
+>
+> **2. Przegląd agreguje z opóźnieniem liczonym w godzinach.**
+> Nie w minutach. Zdarzenie wysłane przed chwilą potrafi pojawić się dopiero
+> po kilku godzinach, a licznik „ostatnio odebrane" jest równie opóźniony.
+>
+> Rozstrzygające jest `events_received` w odpowiedzi Meta, zapisane w kolumnie
+> `lead_events.events_received`. Wartość `1` oznacza, że zdarzenie zostało
+> przyjęte — niezależnie od tego, co pokazuje w danej chwili interfejs.
 
 **Od tego momentu wiesz, że cała połowa „Meta" działa.** Dopiero teraz warto
 ruszać DNS-y.
