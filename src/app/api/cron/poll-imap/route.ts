@@ -22,7 +22,8 @@ const DRAIN_BUDGET_FRACTION = 0.4;
 const PER_EMAIL_RESERVE_MS = 6_000;
 
 /**
- * Ścieżka zapasowa — cron co 5 minut.
+ * Ścieżka zapasowa — cron wg harmonogramu z `vercel.json`
+ * (domyślnie raz dziennie; na planie Vercel Pro może chodzić co 5 minut).
  *
  * Robi dwie rzeczy, w tej kolejności:
  *  1. dokańcza zdarzenia, którym w webhooku zabrakło czasu (`pending`) albo

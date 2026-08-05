@@ -210,7 +210,7 @@ export async function getLeadEvent(eventId: string): Promise<LeadEventRow | unde
  * (`pending`) oraz te, które poległy na błędzie przejściowym.
  *
  * Warunek na `last_attempt_at` daje odstęp między podejściami — bez niego cron
- * co 5 minut waliłby w Meta tym samym zdarzeniem bez opamiętania.
+ * przy częstym harmonogramie waliłby w Meta tym samym zdarzeniem bez opamiętania.
  */
 export async function listRetryableEvents(limit: number): Promise<LeadEventRow[]> {
   const db = getDb();

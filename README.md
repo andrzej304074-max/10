@@ -39,7 +39,7 @@ Reklama FB/IG  →  ogłoszenie na Otodom  →  formularz kontaktowy
                                                   │
                     ┌─────────────────────────────┴──────────────────────┐
                     ▼                                                    ▼
-      ŚCIEŻKA GŁÓWNA: reguła przekazywania                ŚCIEŻKA ZAPASOWA: cron co 5 min
+      ŚCIEŻKA GŁÓWNA: reguła przekazywania                ŚCIEŻKA ZAPASOWA: cron wg vercel.json
       → adres dostawcy inbound parse                      → odpytuje skrzynkę przez IMAP
       → POST /api/inbound/email                           → GET /api/cron/poll-imap
                     │                                                    │
@@ -71,7 +71,7 @@ nie oznaczała utraty leadów — a że idempotencja opiera się na unikalnym in
 ## Wymagania
 
 - Node.js ≥ 20.9
-- konto Vercel (**plan Pro**, jeśli cron ma chodzić co 5 minut — patrz niżej)
+- konto Vercel — **plan Hobby wystarcza** (cron chodzi wtedy raz dziennie, [szczegóły](#cron--ścieżka-zapasowa))
 - baza Vercel Postgres (Neon)
 - konto u dostawcy inbound parse: **Resend** (domyślnie) albo **Mailgun**
 - domena z możliwością ustawienia rekordów MX
@@ -291,13 +291,44 @@ Wpis w `vercel.json`:
 ```json
 {
   "regions": ["fra1"],
-  "crons": [{ "path": "/api/cron/poll-imap", "schedule": "*/5 * * * *" }]
+  "crons": [{ "path": "/api/cron/poll-imap", "schedule": "0 3 * * *" }]
 }
 ```
 
-> ⚠️ **Harmonogram co 5 minut wymaga planu Vercel Pro.** Na planie Hobby cron
-> może odpalać maksymalnie **raz dziennie** — zmień wtedy `schedule` na np.
-> `"0 3 * * *"`. Główna ścieżka (webhook) działa niezależnie od planu.
+> **Domyślnie cron chodzi raz dziennie o 3:00 UTC**, bo tylko taki harmonogram
+> dopuszcza plan **Vercel Hobby**. Częstszy powoduje odrzucenie deploya
+> komunikatem *„Hobby accounts are limited to daily cron jobs"*.
+>
+> **Masz plan Pro?** Zmień `schedule` na `"*/5 * * * *"` — wtedy zaległości
+> są dokańczane w kilka minut zamiast do doby.
+
+### Co oznacza cron dzienny (Hobby)
+
+Główna ścieżka — webhook — działa **natychmiast i niezależnie od planu**, więc
+w normalnym trybie pracy nic nie tracisz. Znaczenie ma to tylko wtedy, gdy coś
+pójdzie nie tak:
+
+| Sytuacja | Cron co 5 min (Pro) | Cron dzienny (Hobby) |
+|---|---|---|
+| webhook dowiózł zdarzenie | natychmiast | natychmiast |
+| Meta zwróciła 5xx / timeout | ponowienie w ~5 min | ponowienie następnej nocy |
+| zabrakło budżetu czasu funkcji (`pending`) | dokończone w ~5 min | dokończone następnej nocy |
+| awaria dostawcy webhooka | leady dociągnięte z IMAP w ~5 min | dociągnięte następnej nocy |
+
+Opóźnienie nie oznacza utraty konwersji — Meta przyjmuje zdarzenia **do 7 dni
+wstecz**, a `event_time` pochodzi z daty maila, nie z chwili wysyłki. Atrybucja
+pozostaje poprawna.
+
+Na Hobby warto tylko poszerzyć okno wyszukiwania, żeby nieudany przebieg nie
+zostawił luki:
+
+```
+IMAP_LOOKBACK_HOURS=48
+```
+
+Deduplikacja po `message_id` sprawia, że powtórne pobranie tych samych
+wiadomości niczego nie zdubluje — szersze okno kosztuje wyłącznie kilka
+zapytań do IMAP.
 
 **Uwierzytelnienie:** gdy w projekcie ustawiona jest zmienna `CRON_SECRET`,
 Vercel automatycznie dokłada nagłówek `Authorization: Bearer <CRON_SECRET>`
@@ -704,7 +735,8 @@ nie zepsuje po cichu obsługi tego układu.
 | Webhook zwraca **500 `misconfigured`** | brakuje zmiennej środowiskowej. `GET /api/health` pokaże, która grupa jest niekompletna. |
 | Maile przychodzą, ale nie ma zdarzeń | filtr je odrzuca. Szukaj `pipeline.skipped` z powodem; ustaw `LOG_LEVEL=debug` i ewentualnie poszerz `OTODOM_SENDER_DOMAINS` / `OTODOM_SUBJECT_PATTERNS`. |
 | `pipeline.parse_failed` / `no_identifier` | parser nie znalazł ani e-maila, ani telefonu. Zapisz maila i uruchom `npm run parse:check -- mail.eml` — patrz [Dostrajanie parsera](#dostrajanie-parsera). |
-| Zdarzenia wiszą jako `pending` | cron nie chodzi. Sprawdź, czy `CRON_SECRET` jest ustawiony i czy plan Vercel dopuszcza Twój harmonogram. |
+| Zdarzenia wiszą jako `pending` | cron jeszcze nie ruszył. Na Hobby chodzi raz dziennie — możesz odpalić ręcznie: `curl -H "Authorization: Bearer $CRON_SECRET" https://…/api/cron/poll-imap`. |
+| Deploy odrzucony: *„Hobby accounts are limited to daily cron jobs"* | w `vercel.json` ustaw `schedule` na `"0 3 * * *"` (tak jest domyślnie) albo przejdź na plan Pro. |
 | Meta zwraca **400** | najczęściej zły `META_DATASET_ID` albo token bez `ads_management`. Treść odpowiedzi jest w panelu w sekcji dead-letter. |
 | Meta zwraca **190** / `Invalid OAuth token` | token wygasł lub został odebrany — wygeneruj nowy (patrz sekcja o tokenie systemowym). |
 | Zdarzenia nie widać w „Testowanie zdarzeń” | `META_TEST_MODE` musi być `true`, a `META_TEST_EVENT_CODE` zgodny z kodem widocznym w zakładce. Po zmianie zrób redeploy. |
